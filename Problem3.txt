@@ -1,0 +1,79 @@
+###########################Explaination of  the code snippet############################
+
+
+package main
+
+import "fmt"
+
+func main() {
+	// Create a buffered channel that can hold up to 10 functions
+	cnp := make(chan func(), 10)
+
+	// Start 4 goroutines, each running an anonymous function
+	for i := 0; i < 4; i++ {
+		go func() {
+			// This loop reads functions from the channel and executes them
+			for f := range cnp {
+				f()
+			}
+		}()
+	}
+
+	// Send a function to the channel which prints "HERE1"
+	cnp <- func() {
+		fmt.Println("HERE1")
+	}
+
+	// Print "Hello" to the standard output
+	fmt.Println("Hello")
+}
+
+
+##################################Specific Constructs and Their Use-Cases###########################################################
+
+Buffered Channels (make(chan func(), 10)):
+A buffered channel allows sending multiple items to the channel without blocking until the buffer is full. This is useful for managing a queue of tasks to be processed asynchronously.
+
+Anonymous Functions and range on Channels:
+Anonymous functions (func() {}) are used for quick, inline function definitions. range on a channel reads from the channel until it is closed.
+
+Significance of the for Loop with 4 Iterations:
+The loop starts 4 goroutines to process functions concurrently. This can be useful for parallel processing where multiple workers handle tasks from a queue. Four goroutines mean up to four functions can be processed simultaneously.
+
+Why "HERE1" is Not Getting Printed:
+The main function might exit before any of the goroutines have a chance to pick up the function from the channel and execute it. Since the fmt.Println("Hello") line executes immediately, the program may terminate before "HERE1" is printed.
+
+
+
+######################################################## Solution ###############################################################################################################################################################################################################
+
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+func main() {
+    cnp := make(chan func(), 10)
+    var wg sync.WaitGroup
+
+    wg.Add(1) // Increment the WaitGroup counter
+
+    for i := 0; i < 4; i++ {
+        go func() {
+            for f := range cnp {
+                f()
+            }
+        }()
+    }
+
+    cnp <- func() {
+        fmt.Println("HERE1")
+        wg.Done() // Decrement the WaitGroup counter when done
+    }
+
+    fmt.Println("Hello")
+
+    wg.Wait() // Wait for all goroutines to finish
+}
